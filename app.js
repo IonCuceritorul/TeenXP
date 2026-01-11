@@ -29,12 +29,16 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!user) return window.location.href = "login.html";
 
     db.ref("users/" + user.uid).once("value").then(snap => {
-      welcome.innerText = "Welcome, " + snap.val().username;
+      if (!snap.exists()) {
+        welcome.innerText = "Welcome!";
+      } else {
+        welcome.innerText = "Welcome, " + snap.val().username;
+      }
     });
   });
 
   // Logout
-  logout.onclick = () => auth.signOut();
+  logout.onclick = () => auth.signOut().then(() => window.location.href = "login.html");
 
   // Post Job with validation
   postJobBtn.onclick = () => {
@@ -49,12 +53,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const user = auth.currentUser;
     db.ref("users/" + user.uid).once("value").then(snap => {
+      const username = snap.val().username || "Anonymous";
       db.ref("jobs").push({
         title,
         description: desc,
         reward,
         postedBy: user.uid,
-        posterUsername: snap.val().username,
+        posterUsername: username,
         takenBy: null,
         createdAt: Date.now()
       });
@@ -90,8 +95,9 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!job.takenBy && job.postedBy !== auth.currentUser.uid) {
         const btn = document.createElement("button");
         btn.innerText = "Accept Job";
-        btn.onclick = () =>
+        btn.onclick = () => {
           db.ref("jobs/" + jobSnap.key).update({ takenBy: auth.currentUser.uid });
+        };
         div.appendChild(btn);
       }
 
