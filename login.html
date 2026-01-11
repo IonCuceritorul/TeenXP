@@ -1,0 +1,129 @@
+﻿<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login / Register</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            width: 300px;
+        }
+
+        input {
+            width: 95%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 5px;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+
+            button:hover {
+                background: #45a049;
+            }
+
+        .message {
+            color: red;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Login / Register</h2>
+
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Parolă">
+
+        <button id="loginBtn" type="button">Login</button>
+        <button id="registerBtn" type="button">Register</button>
+
+        <p class="message" id="message"></p>
+    </div>
+
+    <script>
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const loginBtn = document.getElementById('loginBtn');
+    const registerBtn = document.getElementById('registerBtn');
+    const message = document.getElementById('message');
+
+    // Obține utilizatorii din localStorage sau creează obiect gol
+    let users = JSON.parse(localStorage.getItem('users')) || {};
+
+    // Login
+    loginBtn.addEventListener('click', () => {
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value;
+
+        if(!username || !password){
+            message.style.color = "red";
+            message.innerText = "Completează toate câmpurile!";
+            return;
+        }
+
+        if(users[username] && users[username] === password){
+            localStorage.setItem('currentUser', username);
+            message.style.color = "green";
+            message.innerText = `Bine ai venit, ${username}! Redirecționare...`;
+
+            // Redirecționare sigură după puțin timp pentru a vedea mesajul
+            setTimeout(() => {
+                window.location.href = "main.html";
+            }, 500);
+        } else {
+            message.style.color = "red";
+            message.innerText = "Username sau parolă greșită!";
+        }
+    });
+
+    // Register
+    registerBtn.addEventListener('click', () => {
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value;
+
+        if(!username || !password){
+            message.style.color = "red";
+            message.innerText = "Completează toate câmpurile!";
+            return;
+        }
+
+        if(users[username]){
+            message.style.color = "red";
+            message.innerText = "Username-ul există deja!";
+        } else {
+            users[username] = password;
+            localStorage.setItem('users', JSON.stringify(users));
+            message.style.color = "green";
+            message.innerText = "Înregistrare realizată cu succes!";
+        }
+    });
+    </script>
+
+</body>
+</html>
