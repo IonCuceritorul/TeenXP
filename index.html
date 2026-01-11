@@ -47,9 +47,16 @@
     </header>
 
     <main>
-        <h2>Conținutul site-ului</h2>
-        <p>Aici poți adăuga joburi și alte funcționalități.</p>
-    </main>
+    <h2>Postează un job</h2>
+    <input type="text" id="jobTitle" placeholder="Titlu job">
+    <input type="text" id="jobDesc" placeholder="Descriere job">
+    <input type="text" id="jobReward" placeholder="Recompensă (ex: 50 RON)">
+    <button id="postJobBtn">Postează Job</button>
+
+    <h2>Joburi disponibile</h2>
+    <ul id="jobList"></ul>
+</main>
+
 
     <script>
     const welcomeMsg = document.getElementById('welcomeMsg');
@@ -69,7 +76,75 @@
         localStorage.removeItem('currentUser');
         window.location.href = "login.html";
     });
+
+    // Preluăm elementele
+const jobTitleInput = document.getElementById('jobTitle');
+const jobDescInput = document.getElementById('jobDesc');
+const jobRewardInput = document.getElementById('jobReward');
+const postJobBtn = document.getElementById('postJobBtn');
+const jobList = document.getElementById('jobList');
+
+// Obținem joburile din localStorage sau inițializăm array gol
+let jobs = JSON.parse(localStorage.getItem('jobs')) || [];
+
+// Funcție să afișăm joburile
+function displayJobs() {
+    jobList.innerHTML = '';
+    jobs.forEach((job, index) => {
+        const li = document.createElement('li');
+        li.innerHTML = `<strong>${job.title}</strong> - ${job.desc} - ${job.reward} 
+                        <br>Postat de: ${job.postedBy} 
+                        <button ${job.takenBy ? "disabled" : ""} onclick="acceptJob(${index})">
+                            ${job.takenBy ? `Acceptat de ${job.takenBy}` : 'Acceptă Job'}
+                        </button>`;
+        jobList.appendChild(li);
+    });
+}
+
+// Funcție pentru a posta job
+postJobBtn.addEventListener('click', () => {
+    const title = jobTitleInput.value.trim();
+    const desc = jobDescInput.value.trim();
+    const reward = jobRewardInput.value.trim();
+
+    if(!title || !desc || !reward){
+        alert("Completează toate câmpurile!");
+        return;
+    }
+
+    jobs.push({
+        title,
+        desc,
+        reward,
+        postedBy: currentUser,
+        takenBy: null
+    });
+
+    localStorage.setItem('jobs', JSON.stringify(jobs));
+    jobTitleInput.value = '';
+    jobDescInput.value = '';
+    jobRewardInput.value = '';
+    displayJobs();
+});
+
+// Funcție pentru a accepta job
+function acceptJob(index) {
+    if(jobs[index].takenBy){
+        alert("Jobul a fost deja acceptat!");
+        return;
+    }
+    jobs[index].takenBy = currentUser;
+    localStorage.setItem('jobs', JSON.stringify(jobs));
+    displayJobs();
+}
+
+// Afișăm joburile la încărcare
+displayJobs();
+
+
     </script>
+
+    
 
 </body>
 </html>
