@@ -1,50 +1,63 @@
-const firebaseConfig = {
-  apiKey: "AIzaSyALiRJPLBGmPSwfJ0oEhzt30KmYol9Fn6A",
-  authDomain: "teenxp-dc30f.firebaseapp.com",
-  databaseURL: "https://teenxp-dc30f-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "teenxp-dc30f",
-  storageBucket: "teenxp-dc30f.firebasestorage.app",
-  messagingSenderId: "148552569998",
-  appId: "1:148552569998:web:81f1bac595865ece40e5df"
-};
+document.addEventListener("DOMContentLoaded", () => {
 
-firebase.initializeApp(firebaseConfig);
+  const firebaseConfig = {
+    apiKey: "AIzaSyALiRJPLBGmPSwfJ0oEhzt30KmYol9Fn6A",
+    authDomain: "teenxp-dc30f.firebaseapp.com",
+    databaseURL: "https://teenxp-dc30f-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "teenxp-dc30f",
+    storageBucket: "teenxp-dc30f.firebasestorage.app",
+    messagingSenderId: "148552569998",
+    appId: "1:148552569998:web:81f1bac595865ece40e5df"
+  };
 
-const auth = firebase.auth();
-const db = firebase.database();
+  // 🔐 Prevent double init
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
 
-const msg = document.getElementById("message");
+  const auth = firebase.auth();
+  const db = firebase.database();
 
-// Inputs (SAFE, EXPLICIT)
-const emailInput = document.getElementById("email");
-const passwordInput = document.getElementById("password");
-const usernameInput = document.getElementById("username");
+  const msg = document.getElementById("message");
 
-// LOGIN PAGE
-const loginBtn = document.getElementById("loginBtn");
-if (loginBtn) {
-  loginBtn.onclick = () => {
-    auth
-      .signInWithEmailAndPassword(
+  const emailInput = document.getElementById("email");
+  const passwordInput = document.getElementById("password");
+  const usernameInput = document.getElementById("username");
+
+  const loginBtn = document.getElementById("loginBtn");
+  const registerBtn = document.getElementById("registerBtn");
+
+  /* LOGIN */
+  if (loginBtn) {
+    loginBtn.addEventListener("click", () => {
+      console.log("Login clicked");
+
+      auth.signInWithEmailAndPassword(
         emailInput.value,
         passwordInput.value
       )
-      .then(() => window.location.href = "index.html")
-      .catch(err => msg.innerText = err.message);
-  };
-}
+      .then(() => {
+        console.log("Login success");
+        window.location.href = "index.html";
+      })
+      .catch(err => {
+        console.error(err);
+        msg.innerText = err.message;
+      });
+    });
+  }
 
-// REGISTER PAGE
-const registerBtn = document.getElementById("registerBtn");
-if (registerBtn) {
-  registerBtn.onclick = () => {
-    if (!usernameInput.value || !emailInput.value || !passwordInput.value) {
-      msg.innerText = "Fill all fields";
-      return;
-    }
+  /* REGISTER */
+  if (registerBtn) {
+    registerBtn.addEventListener("click", () => {
+      console.log("Register clicked");
 
-    auth
-      .createUserWithEmailAndPassword(
+      if (!usernameInput.value || !emailInput.value || !passwordInput.value) {
+        msg.innerText = "Fill all fields";
+        return;
+      }
+
+      auth.createUserWithEmailAndPassword(
         emailInput.value,
         passwordInput.value
       )
@@ -55,6 +68,11 @@ if (registerBtn) {
         });
       })
       .then(() => window.location.href = "login.html")
-      .catch(err => msg.innerText = err.message);
-  };
-}
+      .catch(err => {
+        console.error(err);
+        msg.innerText = err.message;
+      });
+    });
+  }
+
+});
