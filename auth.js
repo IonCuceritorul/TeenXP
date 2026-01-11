@@ -10,7 +10,6 @@ document.addEventListener("DOMContentLoaded", () => {
     appId: "1:148552569998:web:81f1bac595865ece40e5df"
   };
 
-  // 🔐 Prevent double init
   if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
   }
@@ -27,51 +26,40 @@ document.addEventListener("DOMContentLoaded", () => {
   const loginBtn = document.getElementById("loginBtn");
   const registerBtn = document.getElementById("registerBtn");
 
-  /* LOGIN */
-  if (loginBtn) {
+  /* LOGIN PAGE ONLY */
+  if (loginBtn && emailInput && passwordInput) {
     loginBtn.addEventListener("click", () => {
-      console.log("Login clicked");
-
-      auth.signInWithEmailAndPassword(
-        emailInput.value,
-        passwordInput.value
-      )
-      .then(() => {
-        console.log("Login success");
-        window.location.href = "index.html";
-      })
-      .catch(err => {
-        console.error(err);
-        msg.innerText = err.message;
-      });
+      auth
+        .signInWithEmailAndPassword(
+          emailInput.value,
+          passwordInput.value
+        )
+        .then(() => window.location.href = "index.html")
+        .catch(err => msg.innerText = err.message);
     });
   }
 
-  /* REGISTER */
-  if (registerBtn) {
+  /* REGISTER PAGE ONLY */
+  if (registerBtn && usernameInput && emailInput && passwordInput) {
     registerBtn.addEventListener("click", () => {
-      console.log("Register clicked");
-
       if (!usernameInput.value || !emailInput.value || !passwordInput.value) {
         msg.innerText = "Fill all fields";
         return;
       }
 
-      auth.createUserWithEmailAndPassword(
-        emailInput.value,
-        passwordInput.value
-      )
-      .then(cred => {
-        return db.ref("users/" + cred.user.uid).set({
-          username: usernameInput.value,
-          email: emailInput.value
-        });
-      })
-      .then(() => window.location.href = "login.html")
-      .catch(err => {
-        console.error(err);
-        msg.innerText = err.message;
-      });
+      auth
+        .createUserWithEmailAndPassword(
+          emailInput.value,
+          passwordInput.value
+        )
+        .then(cred => {
+          return db.ref("users/" + cred.user.uid).set({
+            username: usernameInput.value,
+            email: emailInput.value
+          });
+        })
+        .then(() => window.location.href = "login.html")
+        .catch(err => msg.innerText = err.message);
     });
   }
 
