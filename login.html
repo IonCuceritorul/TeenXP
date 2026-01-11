@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login / Register</title>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
     <style>
         body {
             font-family: Arial;
@@ -14,7 +20,6 @@
             height: 100vh;
             margin: 0;
         }
-
         .container {
             background: white;
             padding: 20px;
@@ -22,108 +27,104 @@
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
             width: 300px;
         }
-
-        input {
-            width: 95%;
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-        }
-
-        button {
+        input, button {
             width: 100%;
             padding: 10px;
-            margin: 10px 0;
-            border: none;
+            margin: 5px 0;
             border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+        button {
             background: #4CAF50;
             color: white;
             cursor: pointer;
+            border: none;
         }
-
-            button:hover {
-                background: #45a049;
-            }
-
-        .message {
-            color: red;
-            text-align: center;
-        }
+        button:hover { background: #45a049; }
+        .message { text-align: center; color: red; }
     </style>
 </head>
 <body>
+<div class="container">
+    <h2>Login / Register</h2>
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Parolă">
+    <button id="loginBtn">Login</button>
+    <button id="registerBtn">Register</button>
+    <p class="message" id="message"></p>
+</div>
 
-    <div class="container">
-        <h2>Login / Register</h2>
+<script>
+    // Firebase config
+    const firebaseConfig = {
+        apiKey: "AIzaSyALiRJPLBGmPSwfJ0oEhzt30KmYol9Fn6A",
+        authDomain: "teenxp-dc30f.firebaseapp.com",
+        databaseURL: "https://teenxp-dc30f-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "teenxp-dc30f",
+        storageBucket: "teenxp-dc30f.firebasestorage.app",
+        messagingSenderId: "148552569998",
+        appId: "1:148552569998:web:81f1bac595865ece40e5df",
+        measurementId: "G-KH13EFMSNT"
+    };
 
-        <input type="text" id="username" placeholder="Username">
-        <input type="password" id="password" placeholder="Parolă">
+    const app = firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
 
-        <button id="loginBtn" type="button">Login</button>
-        <button id="registerBtn" type="button">Register</button>
-
-        <p class="message" id="message"></p>
-    </div>
-
-    <script>
-    const usernameInput = document.getElementById('username');
+    const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
     const loginBtn = document.getElementById('loginBtn');
     const registerBtn = document.getElementById('registerBtn');
     const message = document.getElementById('message');
 
-    // Obține utilizatorii din localStorage sau creează obiect gol
-    let users = JSON.parse(localStorage.getItem('users')) || {};
-
-    // Login
-    loginBtn.addEventListener('click', () => {
-        const username = usernameInput.value.trim();
-        const password = passwordInput.value;
-
-        if(!username || !password){
-            message.style.color = "red";
-            message.innerText = "Completează toate câmpurile!";
-            return;
-        }
-
-        if(users[username] && users[username] === password){
-            localStorage.setItem('currentUser', username);
-            message.style.color = "green";
-            message.innerText = `Bine ai venit, ${username}! Redirecționare...`;
-
-            // Redirecționare sigură după puțin timp pentru a vedea mesajul
-            setTimeout(() => {
-                window.location.href = "index.html";
-            }, 500);
-        } else {
-            message.style.color = "red";
-            message.innerText = "Username sau parolă greșită!";
-        }
-    });
-
-    // Register
+    // Register new user
     registerBtn.addEventListener('click', () => {
-        const username = usernameInput.value.trim();
+        const email = emailInput.value.trim();
         const password = passwordInput.value;
 
-        if(!username || !password){
-            message.style.color = "red";
+        if(!email || !password){
             message.innerText = "Completează toate câmpurile!";
             return;
         }
 
-        if(users[username]){
-            message.style.color = "red";
-            message.innerText = "Username-ul există deja!";
-        } else {
-            users[username] = password;
-            localStorage.setItem('users', JSON.stringify(users));
-            message.style.color = "green";
-            message.innerText = "Înregistrare realizată cu succes!";
-        }
+        auth.createUserWithEmailAndPassword(email, password)
+            .then(userCredential => {
+                const user = userCredential.user;
+                // Save basic user info in database
+                db.ref('users/' + user.uid).set({
+                    email: user.email
+                });
+                message.style.color = "green";
+                message.innerText = "Înregistrare realizată cu succes!";
+            })
+            .catch(error => {
+                message.style.color = "red";
+                message.innerText = error.message;
+            });
     });
-    </script>
 
+    // Login existing user
+    loginBtn.addEventListener('click', () => {
+        const email = emailInput.value.trim();
+        const password = passwordInput.value;
+
+        if(!email || !password){
+            message.innerText = "Completează toate câmpurile!";
+            return;
+        }
+
+        auth.signInWithEmailAndPassword(email, password)
+            .then(userCredential => {
+                const user = userCredential.user;
+                // Redirect to main page
+                window.location.href = "index.html";
+            })
+            .catch(error => {
+                message.style.color = "red";
+                message.innerText = error.message;
+            });
+    });
+</script>
 </body>
 </html>

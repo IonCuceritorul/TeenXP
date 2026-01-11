@@ -5,69 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pagina Principală</title>
 
-    <!-- Firebase SDK (Compat version) -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
     <style>
-        body {
-            font-family: Arial;
-            margin: 0;
-            padding: 0;
-            background: #f7f7f7;
-        }
-
-        header {
-            background: #4CAF50;
-            color: white;
-            padding: 15px;
-            text-align: center;
-        }
-
-        main {
-            max-width: 900px;
-            margin: 20px auto;
-            padding: 0 15px;
-        }
-
-        input, button {
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 5px;
-            border: 1px solid #4CAF50;
-            font-size: 14px;
-        }
-
-        button {
-            background: #4CAF50;
-            color: white;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background: #45a049;
-        }
-
-        .job-card {
-            background: white;
-            padding: 15px;
-            margin: 10px 0;
-            border-radius: 10px;
-            box-shadow: 0 0 5px rgba(0,0,0,0.1);
-        }
-
-        .job-card.available {
-            border-left: 5px solid green;
-        }
-
-        .job-card.taken {
-            border-left: 5px solid red;
-            opacity: 0.8;
-        }
-
-        .job-card button {
-            margin-top: 10px;
-        }
+        body { font-family: Arial; margin:0; padding:0; background:#f7f7f7; }
+        header { background: #4CAF50; color:white; padding:15px; text-align:center; }
+        main { max-width: 900px; margin:20px auto; padding:0 15px; }
+        input, button { padding:10px; margin:5px 0; border-radius:5px; border:1px solid #4CAF50; }
+        button { background: #4CAF50; color:white; cursor:pointer; }
+        button:hover { background: #45a049; }
+        .job-card { background:white; padding:15px; margin:10px 0; border-radius:10px; box-shadow:0 0 5px rgba(0,0,0,0.1);}
+        .job-card.available { border-left:5px solid green; }
+        .job-card.taken { border-left:5px solid red; opacity:0.8; }
+        .job-card button { margin-top:10px; }
     </style>
 </head>
 <body>
@@ -90,24 +43,6 @@
 </main>
 
 <script>
-    const welcomeMsg = document.getElementById('welcomeMsg');
-    const logoutBtn = document.getElementById('logoutBtn');
-
-    // Get current user from localStorage
-    const currentUser = localStorage.getItem('currentUser');
-
-    if(!currentUser){
-        window.location.href = "login.html";
-    } else {
-        welcomeMsg.innerText = `Salut, ${currentUser}!`;
-    }
-
-    logoutBtn.addEventListener('click', () => {
-        localStorage.removeItem('currentUser');
-        window.location.href = "login.html";
-    });
-
-    // Firebase configuration
     const firebaseConfig = {
         apiKey: "AIzaSyALiRJPLBGmPSwfJ0oEhzt30KmYol9Fn6A",
         authDomain: "teenxp-dc30f.firebaseapp.com",
@@ -119,19 +54,36 @@
         measurementId: "G-KH13EFMSNT"
     };
 
-    // Initialize Firebase
     const app = firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
     const db = firebase.database();
 
-    // Elements
+    const welcomeMsg = document.getElementById('welcomeMsg');
+    const logoutBtn = document.getElementById('logoutBtn');
+
     const jobTitleInput = document.getElementById('jobTitle');
     const jobDescInput = document.getElementById('jobDesc');
     const jobRewardInput = document.getElementById('jobReward');
     const postJobBtn = document.getElementById('postJobBtn');
     const jobList = document.getElementById('jobList');
 
-    // Post a new job
+    // Redirect if not logged in
+    auth.onAuthStateChanged(user => {
+        if(user){
+            welcomeMsg.innerText = `Salut, ${user.email}!`;
+        } else {
+            window.location.href = "login.html";
+        }
+    });
+
+    // Logout
+    logoutBtn.addEventListener('click', () => auth.signOut());
+
+    // Post a job
     postJobBtn.addEventListener('click', () => {
+        const user = auth.currentUser;
+        if(!user) return;
+
         const title = jobTitleInput.value.trim();
         const desc = jobDescInput.value.trim();
         const reward = jobRewardInput.value.trim();
@@ -146,7 +98,8 @@
             title,
             desc,
             reward,
-            postedBy: currentUser,
+            postedBy: user.uid,
+            posterEmail: user.email,
             takenBy: null
         });
 
@@ -158,6 +111,7 @@
     // Display jobs
     function displayJobs(jobsData){
         jobList.innerHTML = '';
+        const user = auth.currentUser;
         for(const id in jobsData){
             const job = jobsData[id];
             const card = document.createElement('div');
@@ -166,12 +120,12 @@
 
             card.innerHTML = `
                 <strong>${job.title}</strong> - ${job.desc} - ${job.reward}<br>
-                Postat de: ${job.postedBy}<br>
-                ${job.takenBy ? `Acceptat de ${job.takenBy}` : ''}
+                Postat de: ${job.posterEmail}<br>
+                ${job.takenBy ? `Acceptat de ${job.takenByEmail || job.takenBy}` : ''}
             `;
 
             // Add accept button if available and not posted by current user
-            if(!job.takenBy && job.postedBy !== currentUser){
+            if(!job.takenBy && job.postedBy !== user.uid){
                 const btn = document.createElement('button');
                 btn.innerText = 'Acceptă Job';
                 btn.addEventListener('click', () => acceptJob(id));
@@ -184,6 +138,8 @@
 
     // Accept job
     function acceptJob(jobId){
+        const user = auth.currentUser;
+        if(!user) return;
         const jobRef = db.ref('jobs/' + jobId);
         jobRef.once('value', snapshot => {
             const job = snapshot.val();
@@ -191,11 +147,11 @@
                 alert("Jobul a fost deja acceptat!");
                 return;
             }
-            jobRef.update({ takenBy: currentUser });
+            jobRef.update({ takenBy: user.uid, takenByEmail: user.email });
         });
     }
 
-    // Listen for changes in jobs in real time
+    // Listen for real-time job changes
     db.ref('jobs').on('value', snapshot => {
         const jobsData = snapshot.val() || {};
         displayJobs(jobsData);
