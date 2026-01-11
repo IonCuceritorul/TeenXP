@@ -1,72 +1,102 @@
-const firebaseConfig = {
-  apiKey: "AIzaSyALiRJPLBGmPSwfJ0oEhzt30KmYol9Fn6A",
-  authDomain: "teenxp-dc30f.firebaseapp.com",
-  databaseURL: "https://teenxp-dc30f-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "teenxp-dc30f",
-  storageBucket: "teenxp-dc30f.firebasestorage.app",
-  messagingSenderId: "148552569998",
-  appId: "1:148552569998:web:81f1bac595865ece40e5df"
-};
+document.addEventListener("DOMContentLoaded", () => {
 
-firebase.initializeApp(firebaseConfig);
+  const firebaseConfig = {
+    apiKey: "AIzaSyALiRJPLBGmPSwfJ0oEhzt30KmYol9Fn6A",
+    authDomain: "teenxp-dc30f.firebaseapp.com",
+    databaseURL: "https://teenxp-dc30f-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "teenxp-dc30f",
+    storageBucket: "teenxp-dc30f.firebasestorage.app",
+    messagingSenderId: "148552569998",
+    appId: "1:148552569998:web:81f1bac595865ece40e5df"
+  };
 
-const auth = firebase.auth();
-const db = firebase.database();
+  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 
-auth.onAuthStateChanged(user => {
-  if (!user) return window.location.href = "login.html";
+  const auth = firebase.auth();
+  const db = firebase.database();
 
-  db.ref("users/" + user.uid).once("value").then(snap => {
-    welcome.innerText = "Welcome, " + snap.val().username;
-  });
-});
+  const welcome = document.getElementById("welcome");
+  const logout = document.getElementById("logout");
+  const postJobBtn = document.getElementById("postJobBtn");
 
-logout.onclick = () => auth.signOut();
+  const jobTitle = document.getElementById("jobTitle");
+  const jobDescription = document.getElementById("jobDescription");
+  const jobReward = document.getElementById("jobReward");
+  const jobsDiv = document.getElementById("jobs");
 
-addJob.onclick = () => {
-  const user = auth.currentUser;
+  // Redirect if not logged in
+  auth.onAuthStateChanged(user => {
+    if (!user) return window.location.href = "login.html";
 
-  db.ref("users/" + user.uid).once("value").then(snap => {
-    db.ref("jobs").push({
-      title: title.value,
-      desc: desc.value,
-      reward: reward.value,
-      postedBy: user.uid,
-      posterUsername: snap.val().username,
-      takenBy: null
+    db.ref("users/" + user.uid).once("value").then(snap => {
+      welcome.innerText = "Welcome, " + snap.val().username;
     });
   });
-};
 
-db.ref("jobs").on("value", snap => {
-  jobs.innerHTML = "";
+  // Logout
+  logout.onclick = () => auth.signOut();
 
-  if (!snap.exists()) {
-    jobs.innerHTML = "<p class='muted'>No jobs available.</p>";
-    return;
-  }
+  // Post Job with validation
+  postJobBtn.onclick = () => {
+    const title = jobTitle.value.trim();
+    const desc = jobDescription.value.trim();
+    const reward = jobReward.value.trim();
 
-  snap.forEach(jobSnap => {
-    const job = jobSnap.val();
-    const div = document.createElement("div");
-    div.className = "job";
-
-    div.innerHTML = `
-      <strong>${job.title}</strong><br>
-      ${job.desc}<br>
-      Reward: ${job.reward}<br>
-      Posted by: ${job.posterUsername}<br>
-    `;
-
-    if (!job.takenBy && job.postedBy !== auth.currentUser.uid) {
-      const btn = document.createElement("button");
-      btn.innerText = "Accept Job";
-      btn.onclick = () =>
-        db.ref("jobs/" + jobSnap.key)
-          .update({ takenBy: auth.currentUser.uid });
-      div.appendChild(btn);
+    if (!title || !desc || !reward) {
+      alert("Please fill in all fields");
+      return;
     }
 
-    jobs.appendChild(div);
+    const user = auth.currentUser;
+    db.ref("users/" + user.uid).once("value").then(snap => {
+      db.ref("jobs").push({
+        title,
+        description: desc,
+        reward,
+        postedBy: user.uid,
+        posterUsername: snap.val().username,
+        takenBy: null,
+        createdAt: Date.now()
+      });
+    });
+
+    // Clear inputs
+    jobTitle.value = "";
+    jobDescription.value = "";
+    jobReward.value = "";
+  };
+
+  // Load Jobs
+  db.ref("jobs").on("value", snap => {
+    jobsDiv.innerHTML = "";
+
+    if (!snap.exists()) {
+      jobsDiv.innerHTML = "<p class='muted'>No jobs available.</p>";
+      return;
+    }
+
+    snap.forEach(jobSnap => {
+      const job = jobSnap.val();
+      const div = document.createElement("div");
+      div.className = "job";
+
+      div.innerHTML = `
+        <strong>${job.title}</strong><br>
+        ${job.description}<br>
+        Reward: ${job.reward}<br>
+        Posted by: ${job.posterUsername}<br>
+      `;
+
+      if (!job.takenBy && job.postedBy !== auth.currentUser.uid) {
+        const btn = document.createElement("button");
+        btn.innerText = "Accept Job";
+        btn.onclick = () =>
+          db.ref("jobs/" + jobSnap.key).update({ takenBy: auth.currentUser.uid });
+        div.appendChild(btn);
+      }
+
+      jobsDiv.appendChild(div);
+    });
   });
+
 });
